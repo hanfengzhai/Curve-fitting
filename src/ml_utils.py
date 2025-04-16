@@ -1,3 +1,13 @@
+import pyDOE, sys, time, tqdm
+import tensorflow_probability as tfp
+from tensorflow.keras.layers import InputLayer, Dense, Layer
+import numpy as np, tensorflow as tf
+import matplotlib.pyplot as plt
+from sklearn.metrics import r2_score
+from visualization_utils import plot, init_color_object
+colors = init_color_object()
+
+
 class NeuralNet:
     # Initialize the class
     def __init__(self, t_train, x_train, t_test, x_test, layers, t_min, t_max):
@@ -96,33 +106,52 @@ class NeuralNet:
               start_time = time.time()
 
 
-def plot(t_all, x_all, pred_all, t_train, x_train, title: str):
-    fig = plt.figure(figsize=(21, 24))
+class TrainNeuralNet:
+    def __init__(self, n_total=None, n_train=None, lr=0.01, epoch=2000, output_dir=None):
+        self.n_total = n_total
+        self.n_train = n_train
+        self.lr = lr
+        self.epoch = epoch
+        self.output_dir = output_dir
+        
+        print(f'{colors.BLUE}n_total:{colors.RESET} {n_total}\n{colors.BLUE}n_train:{colors.RESET} {n_train}')
+        
+    def prepare_data(self):
+        # if self.n_total or self.n_train is None: # the user has to define these 2 vars
+        #     raise ValueError(f"{colors.RED}n_total and n_train should be defined{colors.RESET}")
+        # else: # just for sanity check
+        #     print(f'{colors.BLUE}n_total:{colors.RESET} {n_total}\n{colors.BLUE}n_train:{colors.RESET} {n_train}')
 
-    ax = plt.subplot(311)
-    ax.plot(t_all, x_all, "r", label="Exact Solution")
-    ax.plot(t_all, pred_all, "b--", label="Prediction")
-    ax.scatter(t_train, x_train, s=30, c="g", label="Training Data Point")
-    ax.legend()
-    ax.set_xlabel("$t$", fontsize = 15)
-    ax.set_ylabel("$x$", fontsize = 15, rotation = 0)
-    ax.set_title("$Fitting$", fontsize = 15)
+        self.t_all = np.linspace(-1, 1, self.n_total)
+        self.x_all = x = np.sin(5 * self.t_all)
 
-    ax = plt.subplot(312)
-    ax.plot(t_all, pred_all - x_all, "b-")
-    ax.set_xlabel("$t$", fontsize = 15)
-    ax.set_ylabel("Prediction - Exact Solution", fontsize = 15, rotation = 90)
-    ax.set_title("Difference between Prediction and Exact Solution", fontsize = 15)
+        train_indices = np.zeros(self.t_all.size, dtype=bool)
+        train_indices[:self.n_train] = True
+        np.random.shuffle(train_indices)
 
-    ax = plt.subplot(313)
-    loss_train = np.array(model.loss_history["train"])
-    loss_test = np.array(model.loss_history["test"])
-    ax.scatter(np.arange(loss_train.size) * 100, loss_train, s=30, marker="x", label="Train Loss")
-    ax.scatter(np.arange(loss_train.size) * 100, loss_test, s=30, marker="+", label="Test Loss")
-    ax.legend()
-    ax.set_xlabel("$iterations$", fontsize = 15)
-    ax.set_ylabel("Loss", fontsize = 15, rotation = 90)
-    ax.set_yscale("log")
-    ax.set_title('Loss Curve', fontsize = 15)
+        self.t_train = self.t_all[train_indices]
+        self.x_train = self.x_all[train_indices]
+        self.t_train = tf.reshape(tf.cast(self.t_train, dtype = tf.float32), shape=(-1, 1))
+        self.x_train = tf.reshape(tf.cast(self.x_train, dtype = tf.float32), shape=(-1, 1))
 
-    plt.gcf().text(0.02, 0.9, title, fontsize=30)
+        self.t_test = self.t_all[~train_indices]
+        self.x_test = self.x_all[~train_indices]
+        self.t_test = tf.reshape(tf.cast(self.t_test, dtype = tf.float32), shape=(-1, 1))
+        self.x_test = tf.reshape(tf.cast(self.x_test, dtype = tf.float32), shape=(-1, 1))
+        
+    def train_model(self):
+        model = NeuralNet(t_train=self.t_train, x_train=self.x_train, t_test=self.t_test, x_test=self.x_test,
+                        layers=[1, 100, 100, 100, 1], t_min=self.t_all.min(0), t_max=self.t_all.max(0))
+
+        start_time = time.time()
+        model.train(self.epoch, learning_rate=self.lr, idxOpt=1)
+        elapsed = time.time() - start_time
+        print(f'{colors.BLUE}Training time:{colors.RESET} %.4f' % (elapsed))
+
+        pred_all = model.net(tf.reshape(tf.cast(self.t_all, dtype=tf.float32), shape=(-1, 1))).numpy().flatten()
+        print(f'{colors.BLUE}Norm of Differnece:{colors.RESET} %e' % (model.get_test_error().numpy()))
+
+        r2_train = r2_score(self.x_train, model.net(self.t_train).numpy())
+        r2_test = r2_score(self.x_test, model.net(self.t_test).numpy())
+        plot(self.t_all, self.x_all, pred_all, self.t_train, self.x_train, model, 
+            title="Gradient Descent Optimization", lr=self.lr, output_dir=self.output_dir)
