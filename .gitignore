@@ -139,3 +139,8 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Hanfeng HW (for MC3 env)
+._*
+*.mat
+*.dat
