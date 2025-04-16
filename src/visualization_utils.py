@@ -56,17 +56,17 @@ def init_color_object():
     return color
 
 
-def plot(t_all, x_all, pred_all, t_train, x_train, model, title: str, lr=0.01, output_dir='.'):
-    fig = plt.figure(figsize=(21, 24))
+def plot(t_all, x_all, pred_all, t_train, x_train, model, title: str, vars=0.01, output_dir='.'):
+    fig = plt.figure(figsize=(7, 12))
 
     ax = plt.subplot(311)
     ax.plot(t_all, x_all, "r", label="Exact Solution")
     ax.plot(t_all, pred_all, "b--", label="Prediction")
     ax.scatter(t_train, x_train, s=30, c="g", label="Training Data Point")
-    ax.legend()
+    ax.legend(fontsize=12)
     ax.set_xlabel("$t$", fontsize = 15)
     ax.set_ylabel("$x$", fontsize = 15, rotation = 0)
-    ax.set_title("$Fitting$", fontsize = 15)
+    ax.set_title(title, fontsize = 15)
 
     ax = plt.subplot(312)
     ax.plot(t_all, pred_all - x_all, "b-")
@@ -77,14 +77,14 @@ def plot(t_all, x_all, pred_all, t_train, x_train, model, title: str, lr=0.01, o
     ax = plt.subplot(313)
     loss_train = np.array(model.loss_history["train"])
     loss_test = np.array(model.loss_history["test"])
-    ax.scatter(np.arange(loss_train.size) * 100, loss_train, s=30, marker="x", label="Train Loss")
-    ax.scatter(np.arange(loss_train.size) * 100, loss_test, s=30, marker="+", label="Test Loss")
-    ax.legend()
+    ax.scatter(np.arange(loss_train.size) * 100, loss_train, s=75, marker="x", label="Train Loss")
+    ax.scatter(np.arange(loss_train.size) * 100, loss_test, s=75, marker="+", label="Test Loss")
+    ax.legend(fontsize=12)
     ax.set_xlabel("$iterations$", fontsize = 15)
     ax.set_ylabel("Loss", fontsize = 15, rotation = 90)
     ax.set_yscale("log")
     ax.set_title('Loss Curve', fontsize = 15)
 
-    plt.gcf().text(0.02, 0.9, title, fontsize=30)
+    # plt.gcf().text(0.02, 0.9, title, fontsize=30)
     plt.tight_layout()
-    plt.savefig(f"{output_dir}/curve_fitting_lr{lr}.png", dpi=300)
+    plt.savefig(f"{output_dir}/curve_fitting_{vars}.png", dpi=300)
