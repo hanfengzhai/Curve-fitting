@@ -16,9 +16,9 @@ os.makedirs(output_dir, exist_ok=True)
 """ ### Tasks
 1. Find the learning rate that makes the loss converge (DONE)
 2. Find the minimum amount of training data needed to make the loss converge (DONE)
-3. Effects of activation function
-4. Effects of noisy data (e.g. Gausian noise)
-5. Find the parameters that can cause overfitting (test loss increases over iterations). The maximum iterations you can use is 20k.
+3. Effects of activation function (DONE)
+4. Effects of noisy data (e.g. Gausian noise) (DONE)
+5. Find the parameters that can cause overfitting (test loss increases over iterations). The maximum iterations you can use is 20k. (DONE)
 """
 
 if __name__ == "__main__":
@@ -35,7 +35,7 @@ if __name__ == "__main__":
         train_nn.post_process(option='lr')
         train_nn.print_info()
     print(f'{colors.GREEN}Finish tuning the learning rate{colors.RESET}')
-    
+
     # Task #2 - find minimum data required
     for _train_ratio_ in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]: 
         _n_train_ = int(n_total * _train_ratio_)
@@ -44,8 +44,8 @@ if __name__ == "__main__":
         train_nn.train_model()
         train_nn.post_process(option='train_ratio')
         train_nn.print_info()
-    print(f'{colors.GREEN}Finish tuning the data ratio{colors.RESET}')
-    
+    print(f'==============={colors.GREEN}Finish tuning the data ratio{colors.RESET}===============')
+
     # Task #3 - play with activation function
     train_nn = TrainNeuralNet(n_total=n_total, n_train=n_train, lr=lr, epoch=epoch, 
                               actv_func='tanh', output_dir=output_dir)
@@ -53,4 +53,27 @@ if __name__ == "__main__":
     train_nn.train_model()
     train_nn.post_process(option='activation')
     train_nn.print_info()
-    print(f'{colors.GREEN}Finish tuning the activation function{colors.RESET}')
+    print(f'==============={colors.GREEN}Finish tuning the activation function{colors.RESET}===============')
+
+    # Task #4 - add noise
+    for _noise_level_ in [1e-3, 0.01, 0.1]:
+        train_nn = TrainNeuralNet(n_total=n_total, n_train=n_train, lr=lr, epoch=epoch, 
+                                  add_noise=True, noise_magnitude=_noise_level_, output_dir=output_dir)
+        train_nn.prepare_data()
+        train_nn.train_model()
+        train_nn.post_process(option='noise')
+        train_nn.print_info()
+    print(f'==============={colors.GREEN}Finish tuning the noise{colors.RESET}===============')
+
+    # Task #5 - find overfitting parameters (any noise & training/testing data ratio)
+    for _train_ratio_ in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+        _n_train_ = int(n_total * _train_ratio_)
+        for _noise_level_ in [0.5, 0.1, 0.05, 0.01, 5e-3, 1e-3]:
+            train_nn = TrainNeuralNet(n_total=n_total, n_train=_n_train_, lr=lr, epoch=20000, 
+                                      add_noise=True, noise_magnitude=_noise_level_, output_dir=output_dir,
+                                      early_stop=True)
+            train_nn.prepare_data()
+            train_nn.train_model()
+            train_nn.post_process(option='overfit')
+            train_nn.print_info()
+    print(f'==============={colors.GREEN}Finish tuning the noise{colors.RESET}===============')
